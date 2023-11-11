@@ -86,6 +86,7 @@ func CPut(reqUrl string, d ...interface{}) (jre *jrequest) {
 }
 
 // 设置代理
+// proxy: eg:http://ip:port
 func (jr *jrequest) CSetProxy(proxy string) (jre *jrequest) {
 	if jr == nil {
 		return nil
@@ -323,7 +324,7 @@ func (jr *jrequest) CSetKeepalive(iskeepalive bool) (jre *jrequest) {
 		return nil
 	}
 	jr.IsKeepAlive = iskeepalive
-	return
+	return jr
 }
 
 // 设置capath
@@ -371,6 +372,8 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	}
 	// 设置connection
 	jre.req.Close = !jre.IsKeepAlive
+	// 设置短连接
+	jre.transport.DisableKeepAlives = !jre.IsKeepAlive
 	resp = &jresponse{}
 	//jlog.Info(jre.req)
 	// 设置transport
