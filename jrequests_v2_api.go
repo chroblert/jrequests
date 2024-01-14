@@ -286,9 +286,14 @@ func (jr *jrequest) CSetIsVerifySSL(isverifyssl bool) (jre *jrequest) {
 	jr.IsVerifySSL = isverifyssl
 	// 设置是否验证服务端证书
 	if !jr.IsVerifySSL {
-		jr.transport.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
 		}
+
 	} else {
 		var rootCAPool *x509.CertPool
 		rootCAPool, err := x509.SystemCertPool()
@@ -309,6 +314,13 @@ func (jr *jrequest) CSetIsVerifySSL(isverifyssl bool) (jre *jrequest) {
 					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
 					rootCAPool.AppendCertsFromPEM(caCrt)
 				}
+			}
+		}
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
 			}
 		}
 		jr.transport.TLSClientConfig = &tls.Config{
@@ -383,12 +395,15 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	if jre.HttpVersion == 2 {
 		// 判断当前是否已经为http2
 		alreadyH2 := false
-		for _, v := range jre.transport.TLSClientConfig.NextProtos {
-			if v == "h2" {
-				alreadyH2 = true
-				break
+		if jre.transport.TLSClientConfig != nil {
+			for _, v := range jre.transport.TLSClientConfig.NextProtos {
+				if v == "h2" {
+					alreadyH2 = true
+					break
+				}
 			}
 		}
+
 		if !alreadyH2 {
 			err = http2.ConfigureTransport(backTransport)
 			if err != nil {
