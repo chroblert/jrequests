@@ -2,12 +2,14 @@ package jrequests
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"github.com/chroblert/jrequests/jfile"
 	"golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -339,6 +341,15 @@ func (jr *jrequest) CSetKeepalive(iskeepalive bool) (jre *jrequest) {
 	return jr
 }
 
+// 设置发包后，是否发送RST包，用于缓解TIME_WAIT问题
+func (jr *jrequest) CSetRST(bSendRST bool) (jre *jrequest) {
+	if jr == nil {
+		return nil
+	}
+	jr.BSendRST = bSendRST
+	return jr
+}
+
 // 设置capath
 func (jr *jrequest) CSetCAPath(CAPath string) (jre *jrequest) {
 	if jr == nil {
@@ -411,6 +422,25 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 			}
 		}
 	}
+	// 缓解TIME_WAIT问题
+	if jre.BSendRST {
+		backTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 30 * time.Second,
+			}
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			tcpConn, ok := conn.(*net.TCPConn)
+			if ok {
+				tcpConn.SetLinger(0)
+				return tcpConn, nil
+			}
+			return conn, nil
+		}
+	}
+
 	jre.cli.Transport = backTransport
 	resp.Resp, err = jre.cli.Do(jre.req)
 	resetJr(jre)

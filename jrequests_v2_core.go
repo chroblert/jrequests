@@ -30,6 +30,7 @@ var jrePool = &sync.Pool{New: func() interface{} {
 		IsVerifySSL:  false,
 		HttpVersion:  1,
 		IsKeepAlive:  false,
+		BSendRST:     false,
 		IsKeepCookie: false,
 		CAPath:       "cas",
 		//Url:         "",
@@ -52,6 +53,7 @@ type jrequest struct {
 	IsVerifySSL  bool
 	HttpVersion  int
 	IsKeepAlive  bool
+	BSendRST     bool
 	IsKeepCookie bool
 	CAPath       string
 	Url          string
@@ -75,6 +77,7 @@ type jnrequest struct {
 	IsVerifySSL  bool
 	HttpVersion  int
 	IsKeepAlive  bool
+	BSendRST     bool
 	IsKeepCookie bool
 	CAPath       string
 	Url          string
@@ -223,6 +226,7 @@ func resetJr(jr *jrequest) {
 	jr.IsVerifySSL = false
 	jr.HttpVersion = 1
 	jr.IsKeepAlive = false
+	jr.BSendRST = false
 	jr.CAPath = "cas"
 	jr.transport = &http.Transport{}
 	jr.transport2 = &http2.Transport{}
@@ -603,6 +607,14 @@ func (jr *jnrequest) SetKeepalive(iskeepalive bool) {
 		return
 	}
 	jr.IsKeepAlive = iskeepalive
+}
+
+// 设置发包后，是否发送RST包，用于缓解TIME_WAIT问题
+func (jr *jnrequest) SetRST(bSendRST bool) {
+	if jr == nil {
+		return
+	}
+	jr.BSendRST = bSendRST
 }
 
 // 设置capath
