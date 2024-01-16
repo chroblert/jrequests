@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/chroblert/jgoutils/jasync"
-	"github.com/chroblert/jgoutils/jlog"
+	"github.com/chroblert/jasync"
+	"github.com/chroblert/jlog"
 	"github.com/chroblert/jrequests"
 )
 
 func main() {
+	async_req()
+}
+
+func new_requests() {
 	req, _ := jrequests.New()
 	//req.SetIsVerifySSL(false)
 	req.SetProxy("http://localhost:8080")
@@ -48,5 +52,25 @@ func main() {
 		//jlog.NFatal("not find arcsight ArcMC in",target)
 		return
 	}
+}
+
+func async_req() {
+	a := jasync.NewAR(5)
+	for i := 0; i < 10; i++ {
+		a.Init("").CAdd(func() string {
+			resp, _ := jrequests.CGet("https://ipinfo.io").
+				CSetIsVerifySSL(false).
+				CSetHttpVersion(2).
+				CSetProxy("http://localhost:8080").
+				CSetHeaders(map[string][]string{
+					"User-Agent": {"curl\\7.4"},
+				}).
+				CSetTimeout(3).CDo()
+			return string(resp.Body())
+		}).CAdd(func(body string) {
+			jlog.Info(body)
+		}).CDO()
+	}
+	a.Wait()
 
 }
