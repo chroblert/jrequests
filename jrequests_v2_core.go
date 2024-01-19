@@ -18,7 +18,7 @@ import (
 
 var jrePool = &sync.Pool{New: func() interface{} {
 	return &jrequest{
-		Proxy:   "",
+		Proxy:   nil,
 		Timeout: 60,
 		Headers: map[string][]string{
 			"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:86.0) Gecko/20100101 Firefox/86.0"},
@@ -46,7 +46,7 @@ type jrequest struct {
 	Params  map[string][]string
 	Cookies []*http.Cookie
 
-	Proxy        string //func(*http.Request) (*url.URL, error)
+	Proxy        *url.URL // string //func(*http.Request) (*url.URL, error)
 	Timeout      int
 	Data         []byte
 	IsRedirect   bool
@@ -70,7 +70,7 @@ type jnrequest struct {
 	Params  map[string][]string
 	Cookies []*http.Cookie
 
-	Proxy        string //func(*http.Request) (*url.URL, error)
+	Proxy        *url.URL //string //func(*http.Request) (*url.URL, error)
 	Timeout      int
 	Data         []byte
 	IsRedirect   bool
@@ -178,6 +178,14 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 		}
 		req2.URL.RawQuery = query.Encode()
 	}
+	// 设置代理
+	if jr.Proxy != nil {
+		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jr.Proxy, nil
+		}
+	} else {
+		jr.transport.Proxy = nil
+	}
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -214,7 +222,7 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 }
 
 func resetJr(jr *jrequest) {
-	jr.Proxy = ""
+	jr.Proxy = nil
 	jr.Timeout = 60
 	jr.Headers = map[string][]string{
 		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:86.0) Gecko/20100101 Firefox/86.0"},
@@ -279,6 +287,14 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 			}
 		}
 		req2.URL.RawQuery = query.Encode()
+	}
+	// 设置代理
+	if jr.Proxy != nil {
+		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jr.Proxy, nil
+		}
+	} else {
+		jr.transport.Proxy = nil
 	}
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
@@ -361,6 +377,14 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 		}
 		req2.URL.RawQuery = query.Encode()
 	}
+	// 设置代理
+	if jr.Proxy != nil {
+		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jr.Proxy, nil
+		}
+	} else {
+		jr.transport.Proxy = nil
+	}
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -401,18 +425,18 @@ func (jr *jnrequest) SetProxy(proxy string) {
 		return
 	}
 	// TODO proxy格式校验
-	_, err := url.Parse(proxy)
+	pUrl, err := url.Parse(proxy)
 	if err != nil {
 		return
 	}
-	jr.Proxy = proxy
-	if proxy != "" {
-		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-			return url.Parse(proxy)
-		}
-	} else {
-		jr.transport.Proxy = nil
-	}
+	jr.Proxy = pUrl
+	//if proxy != "" {
+	//	jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+	//		return url.Parse(proxy)
+	//	}
+	//} else {
+	//	jr.transport.Proxy = nil
+	//}
 }
 
 // 设置超时

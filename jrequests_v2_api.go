@@ -16,6 +16,30 @@ import (
 	"time"
 )
 
+func CHead(reqUrl string, d ...interface{}) (jre *jrequest) {
+	var err error
+	jre = jrePool.Get().(*jrequest)
+	jre.cli.Jar, err = cookiejar.New(nil)
+	if err != nil {
+		return nil
+	}
+	jre.Url = reqUrl
+	if len(d) > 0 {
+		switch d[0].(type) {
+		case []byte:
+			jre.Data = d[0].([]byte)
+		case string:
+			jre.Data = []byte(d[0].(string))
+		default:
+			jre.Data = []byte(nil)
+		}
+	}
+	jre.method = "HEAD"
+	//// 设置transport
+	//jre.cli.Transport = jre.transport
+	return
+}
+
 func CGet(reqUrl string, d ...interface{}) (jre *jrequest) {
 	var err error
 	jre = jrePool.Get().(*jrequest)
@@ -94,20 +118,20 @@ func (jr *jrequest) CSetProxy(proxy string) (jre *jrequest) {
 		return nil
 	}
 	// TODO proxy格式校验
-	_, err := url.Parse(proxy)
+	pUrl, err := url.Parse(proxy)
 	if err != nil {
 		//jr.transport.Proxy = nil
 		//jlog.Error(err)
 		return nil
 	}
-	jr.Proxy = proxy
-	if proxy != "" {
-		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-			return url.Parse(proxy)
-		}
-	} else {
-		jr.transport.Proxy = nil
-	}
+	jr.Proxy = pUrl
+	//if proxy != "" {
+	//	jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+	//		return url.Parse(proxy)
+	//	}
+	//} else {
+	//	jr.transport.Proxy = nil
+	//}
 	return jr
 }
 
@@ -399,6 +423,16 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	jre.transport.DisableKeepAlives = !jre.IsKeepAlive
 	resp = &jresponse{}
 	//jlog.Info(jre.req)
+
+	// 设置代理
+	if jre.Proxy != nil {
+		jre.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jre.Proxy, nil
+		}
+	} else {
+		jre.transport.Proxy = nil
+	}
+
 	// 设置transport
 	backTransport := jre.transport
 	//tmp := *jr.transport

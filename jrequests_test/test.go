@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	async_req()
+	new_requests()
+	//async_req()
 }
 
 func new_requests() {
