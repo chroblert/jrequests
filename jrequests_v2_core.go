@@ -210,6 +210,49 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 			}
 		}
 	}
+	// 设置是否验证服务端证书
+	if !jr.IsVerifySSL {
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
+		}
+
+	} else {
+		var rootCAPool *x509.CertPool
+		rootCAPool, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAPool = x509.NewCertPool()
+		}
+		// 判断当前程序运行的目录下是否有cas目录
+		// 根证书，用来验证服务端证书的ca
+		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
+			// 枚举当前目录下的文件
+			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
+			if len(caFilenames) > 0 {
+				for _, filename := range caFilenames {
+					caCrt, err := ioutil.ReadFile(filename)
+					if err != nil {
+						return nil, err
+					}
+					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+					rootCAPool.AppendCertsFromPEM(caCrt)
+				}
+			}
+		}
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
+			}
+		}
+		jr.transport.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAPool,
+		}
+	}
 	jr.cli.Transport = backTransport
 	// 设置connection
 	req2.Close = !jr.IsKeepAlive
@@ -302,6 +345,49 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 	}
 	// 设置超时
 	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
+	// 设置是否验证服务端证书
+	if !jr.IsVerifySSL {
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
+		}
+
+	} else {
+		var rootCAPool *x509.CertPool
+		rootCAPool, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAPool = x509.NewCertPool()
+		}
+		// 判断当前程序运行的目录下是否有cas目录
+		// 根证书，用来验证服务端证书的ca
+		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
+			// 枚举当前目录下的文件
+			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
+			if len(caFilenames) > 0 {
+				for _, filename := range caFilenames {
+					caCrt, err := ioutil.ReadFile(filename)
+					if err != nil {
+						return nil, err
+					}
+					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+					rootCAPool.AppendCertsFromPEM(caCrt)
+				}
+			}
+		}
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
+			}
+		}
+		jr.transport.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAPool,
+		}
+	}
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -394,6 +480,49 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	}
 	// 设置超时
 	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
+	// 设置是否验证服务端证书
+	if !jr.IsVerifySSL {
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
+		}
+
+	} else {
+		var rootCAPool *x509.CertPool
+		rootCAPool, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAPool = x509.NewCertPool()
+		}
+		// 判断当前程序运行的目录下是否有cas目录
+		// 根证书，用来验证服务端证书的ca
+		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
+			// 枚举当前目录下的文件
+			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
+			if len(caFilenames) > 0 {
+				for _, filename := range caFilenames {
+					caCrt, err := ioutil.ReadFile(filename)
+					if err != nil {
+						return nil, err
+					}
+					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+					rootCAPool.AppendCertsFromPEM(caCrt)
+				}
+			}
+		}
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
+			}
+		}
+		jr.transport.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAPool,
+		}
+	}
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -602,36 +731,36 @@ func (jr *jnrequest) SetIsVerifySSL(isverifyssl bool) {
 	}
 	jr.IsVerifySSL = isverifyssl
 	// 设置是否验证服务端证书
-	if !jr.IsVerifySSL {
-		jr.transport.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true, // 遇到不安全的https跳过验证
-		}
-	} else {
-		var rootCAPool *x509.CertPool
-		rootCAPool, err := x509.SystemCertPool()
-		if err != nil {
-			rootCAPool = x509.NewCertPool()
-		}
-		// 判断当前程序运行的目录下是否有cas目录
-		// 根证书，用来验证服务端证书的ca
-		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
-			// 枚举当前目录下的文件
-			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
-			if len(caFilenames) > 0 {
-				for _, filename := range caFilenames {
-					caCrt, err := ioutil.ReadFile(filename)
-					if err != nil {
-						return
-					}
-					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
-					rootCAPool.AppendCertsFromPEM(caCrt)
-				}
-			}
-		}
-		jr.transport.TLSClientConfig = &tls.Config{
-			RootCAs: rootCAPool,
-		}
-	}
+	//if !jr.IsVerifySSL {
+	//	jr.transport.TLSClientConfig = &tls.Config{
+	//		InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+	//	}
+	//} else {
+	//	var rootCAPool *x509.CertPool
+	//	rootCAPool, err := x509.SystemCertPool()
+	//	if err != nil {
+	//		rootCAPool = x509.NewCertPool()
+	//	}
+	//	// 判断当前程序运行的目录下是否有cas目录
+	//	// 根证书，用来验证服务端证书的ca
+	//	if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
+	//		// 枚举当前目录下的文件
+	//		caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
+	//		if len(caFilenames) > 0 {
+	//			for _, filename := range caFilenames {
+	//				caCrt, err := ioutil.ReadFile(filename)
+	//				if err != nil {
+	//					return
+	//				}
+	//				//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+	//				rootCAPool.AppendCertsFromPEM(caCrt)
+	//			}
+	//		}
+	//	}
+	//	jr.transport.TLSClientConfig = &tls.Config{
+	//		RootCAs: rootCAPool,
+	//	}
+	//}
 }
 
 // 设置connection是否为长连接，keep-alive

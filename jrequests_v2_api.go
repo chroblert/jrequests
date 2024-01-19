@@ -305,49 +305,6 @@ func (jr *jrequest) CSetIsVerifySSL(isverifyssl bool) (jre *jrequest) {
 		return nil
 	}
 	jr.IsVerifySSL = isverifyssl
-	// 设置是否验证服务端证书
-	if !jr.IsVerifySSL {
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.InsecureSkipVerify = true
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
-			}
-		}
-
-	} else {
-		var rootCAPool *x509.CertPool
-		rootCAPool, err := x509.SystemCertPool()
-		if err != nil {
-			rootCAPool = x509.NewCertPool()
-		}
-		// 判断当前程序运行的目录下是否有cas目录
-		// 根证书，用来验证服务端证书的ca
-		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
-			// 枚举当前目录下的文件
-			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
-			if len(caFilenames) > 0 {
-				for _, filename := range caFilenames {
-					caCrt, err := ioutil.ReadFile(filename)
-					if err != nil {
-						return nil
-					}
-					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
-					rootCAPool.AppendCertsFromPEM(caCrt)
-				}
-			}
-		}
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.RootCAs = rootCAPool
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				RootCAs: rootCAPool,
-			}
-		}
-		jr.transport.TLSClientConfig = &tls.Config{
-			RootCAs: rootCAPool,
-		}
-	}
 	return jr
 }
 
@@ -434,6 +391,49 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 		jre.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			// 对302的location地址，不follow
 			return http.ErrUseLastResponse
+		}
+	}
+	// 设置是否验证服务端证书
+	if !jre.IsVerifySSL {
+		if jre.transport.TLSClientConfig != nil {
+			jre.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jre.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
+		}
+
+	} else {
+		var rootCAPool *x509.CertPool
+		rootCAPool, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAPool = x509.NewCertPool()
+		}
+		// 判断当前程序运行的目录下是否有cas目录
+		// 根证书，用来验证服务端证书的ca
+		if isExsit, _ := jfile.PathExists(jre.CAPath); isExsit {
+			// 枚举当前目录下的文件
+			caFilenames, _ := jfile.GetFilenamesByDir(jre.CAPath)
+			if len(caFilenames) > 0 {
+				for _, filename := range caFilenames {
+					caCrt, err := ioutil.ReadFile(filename)
+					if err != nil {
+						return nil, err
+					}
+					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+					rootCAPool.AppendCertsFromPEM(caCrt)
+				}
+			}
+		}
+		if jre.transport.TLSClientConfig != nil {
+			jre.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jre.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
+			}
+		}
+		jre.transport.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAPool,
 		}
 	}
 	// 设置transport
