@@ -164,6 +164,7 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
 			return http.ErrUseLastResponse
 		}
 	}
@@ -276,6 +277,7 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
 			return http.ErrUseLastResponse
 		}
 	}
@@ -367,6 +369,7 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
 			return http.ErrUseLastResponse
 		}
 	}
@@ -577,11 +580,11 @@ func (jr *jnrequest) SetIsRedirect(isredirect bool) {
 	}
 	jr.IsRedirect = isredirect
 	// 设置是否转发
-	if !jr.IsRedirect {
-		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
+	//if !jr.IsRedirect {
+	//	jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	//		return http.ErrUseLastResponse
+	//	}
+	//}
 }
 
 // 设置http 2.0

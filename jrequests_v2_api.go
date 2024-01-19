@@ -274,12 +274,7 @@ func (jr *jrequest) CSetIsRedirect(isredirect bool) (jre *jrequest) {
 		return nil
 	}
 	jr.IsRedirect = isredirect
-	// 设置是否转发
-	if !jr.IsRedirect {
-		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
+
 	return jr
 }
 
@@ -434,7 +429,13 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	}
 	// 设置超时
 	jre.cli.Timeout = time.Second * time.Duration(jre.Timeout)
-
+	// 设置是否转发
+	if !jre.IsRedirect {
+		jre.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
+			return http.ErrUseLastResponse
+		}
+	}
 	// 设置transport
 	backTransport := jre.transport
 	//tmp := *jr.transport
