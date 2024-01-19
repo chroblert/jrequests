@@ -141,7 +141,7 @@ func (jr *jrequest) CSetTimeout(timeout int) (jre *jrequest) {
 		return nil
 	}
 	jr.Timeout = timeout
-	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
+	//jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	return jr
 }
 
@@ -432,6 +432,8 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	} else {
 		jre.transport.Proxy = nil
 	}
+	// 设置超时
+	jre.cli.Timeout = time.Second * time.Duration(jre.Timeout)
 
 	// 设置transport
 	backTransport := jre.transport

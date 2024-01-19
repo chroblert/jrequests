@@ -186,6 +186,8 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	} else {
 		jr.transport.Proxy = nil
 	}
+	// 设置超时
+	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -296,6 +298,8 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 	} else {
 		jr.transport.Proxy = nil
 	}
+	// 设置超时
+	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -385,6 +389,8 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	} else {
 		jr.transport.Proxy = nil
 	}
+	// 设置超时
+	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	// 设置transport
 	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
@@ -445,7 +451,7 @@ func (jr *jnrequest) SetTimeout(timeout int) {
 		return
 	}
 	jr.Timeout = timeout
-	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
+	//jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 }
 
 // 重置并设置headers
