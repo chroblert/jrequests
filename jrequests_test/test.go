@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	new_requests()
-	//async_req()
+	//new_requests()
+	async_req()
 }
 
 func new_requests() {
@@ -47,7 +47,7 @@ func new_requests() {
 		jlog.Error(err)
 		return
 	}
-	_, err = jrequests.CGet("https://ipinfo.io").CSetIsVerifySSL(false).CSetHttpVersion(2).CSetProxy("http://localhost:8080").CSetTimeout(3).CDo()
+	_, err = jrequests.CGet("https://ipinfo.io").CSetIsVerifySSL(false).CSetHttpVersion(2).CSetProxy("http://localhost:8080").CSetTimeout(1).CDo()
 	if err != nil {
 		jlog.Error(err)
 		//jlog.NFatal("not find arcsight ArcMC in",target)
@@ -57,7 +57,7 @@ func new_requests() {
 
 func async_req() {
 	a := jasync.NewAR(5)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		a.Init("").CAdd(func() string {
 			resp, _ := jrequests.CGet("https://ipinfo.io").
 				CSetIsVerifySSL(false).
@@ -66,6 +66,12 @@ func async_req() {
 				CSetHeaders(map[string][]string{
 					"User-Agent": {"curl\\7.4"},
 				}).
+				CSetCookies(map[string]string{
+					"1": "1",
+					"2": "3",
+				}).CAddCookies(map[string]string{
+				"3": "4", "5": "6",
+			}).
 				CSetTimeout(3).CDo()
 			return string(resp.Body())
 		}).CAdd(func(body string) {

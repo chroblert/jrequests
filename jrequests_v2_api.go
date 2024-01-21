@@ -271,12 +271,50 @@ func (jr *jrequest) CSetCookies(cookies map[string]string) (jre *jrequest) {
 	//if bCookie {
 	//
 	//}
+	if jr.Headers == nil {
+		jr.Headers = make(map[string][]string)
+	}
 	cookieStrList := []string{}
 	for kName, kVal := range cookies {
 		tmpCookieStr := fmt.Sprintf("%s=%s", kName, kVal)
 		cookieStrList = append(cookieStrList, tmpCookieStr)
 	}
 	jr.Headers["Cookie"] = cookieStrList
+
+	return jr
+}
+
+// 添加cookies
+func (jr *jrequest) CAddCookies(cookies map[string]string) (jre *jrequest) {
+	if jr == nil {
+		return nil
+	}
+	if jr.Cookies == nil {
+		jr.Cookies = make([]*http.Cookie, len(cookies))
+	}
+	bNoCookie := true
+
+	// headers中有cookie
+	if jr.Headers == nil {
+		jr.Headers = make(map[string][]string)
+	} else {
+		for k, _ := range jr.Headers {
+			if k == "Cookie" {
+				bNoCookie = false
+				break
+			}
+		}
+	}
+	cookieStrList := []string{}
+	for kName, kVal := range cookies {
+		tmpCookieStr := fmt.Sprintf("%s=%s", kName, kVal)
+		cookieStrList = append(cookieStrList, tmpCookieStr)
+	}
+	if bNoCookie {
+		jr.Headers["Cookie"] = cookieStrList
+	} else {
+		jr.Headers["Cookie"] = append(jr.Headers["Cookie"], cookieStrList...)
+	}
 
 	return jr
 }
