@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"github.com/chroblert/jrequests/jfile"
 	"golang.org/x/net/http2"
 	"io"
@@ -65,7 +66,7 @@ type jrequest struct {
 }
 
 // 用于新建
-type jnrequest struct {
+type Jnrequest struct {
 	Headers map[string][]string
 	Params  map[string][]string
 	Cookies []*http.Cookie
@@ -94,6 +95,9 @@ type jresponse struct {
 
 // 返回响应的body
 func (jrs *jresponse) Body() []byte {
+	if jrs.Resp == nil {
+		return nil
+	}
 	defer jrs.Resp.Body.Close()
 	res, err := ioutil.ReadAll(jrs.Resp.Body)
 	if err != nil {
@@ -104,8 +108,8 @@ func (jrs *jresponse) Body() []byte {
 
 // 创建实例
 // param d:是否保存cookie，true or false
-func New(d ...interface{}) (jrn *jnrequest, err error) {
-	jrn = (*jnrequest)(jrePool.Get().(*jrequest))
+func New(d ...interface{}) (jrn *Jnrequest, err error) {
+	jrn = (*Jnrequest)(jrePool.Get().(*jrequest))
 	jrn.cli.Jar, err = cookiejar.New(nil)
 	if err != nil {
 		return
@@ -130,7 +134,7 @@ func New(d ...interface{}) (jrn *jnrequest, err error) {
 //}
 
 // TODO 解决并发 资源共享问题
-func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
+func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
 	resp = &jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
@@ -159,8 +163,8 @@ func (jr *jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 		}
 	}
 	// 设置cookies
-	u, err := url.Parse(reqUrl)
-	jr.cli.Jar.SetCookies(u, jr.Cookies)
+	//u, err := url.Parse(reqUrl)
+	//jr.cli.Jar.SetCookies(u, jr.Cookies)
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -287,7 +291,7 @@ func resetJr(jr *jrequest) {
 	jr.cli = &http.Client{}
 }
 
-func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
+func (jr *Jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
 	resp = &jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
@@ -315,8 +319,8 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 		}
 	}
 	// 设置cookies
-	u, err := url.Parse(reqUrl)
-	jr.cli.Jar.SetCookies(u, jr.Cookies)
+	//u, err := url.Parse(reqUrl)
+	//jr.cli.Jar.SetCookies(u, jr.Cookies)
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -422,7 +426,7 @@ func (jr *jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 	return
 }
 
-func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
+func (jr *Jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
 	resp = &jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
@@ -450,8 +454,8 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 		}
 	}
 	// 设置cookies
-	u, err := url.Parse(reqUrl)
-	jr.cli.Jar.SetCookies(u, jr.Cookies)
+	//u, err := url.Parse(reqUrl)
+	//jr.cli.Jar.SetCookies(u, jr.Cookies)
 	// 设置是否转发
 	if !jr.IsRedirect {
 		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -558,7 +562,7 @@ func (jr *jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err 
 }
 
 // 设置代理
-func (jr *jnrequest) SetProxy(proxy string) {
+func (jr *Jnrequest) SetProxy(proxy string) {
 	if jr == nil {
 		return
 	}
@@ -578,7 +582,7 @@ func (jr *jnrequest) SetProxy(proxy string) {
 }
 
 // 设置超时
-func (jr *jnrequest) SetTimeout(timeout int) {
+func (jr *Jnrequest) SetTimeout(timeout int) {
 	if jr == nil {
 		return
 	}
@@ -587,7 +591,7 @@ func (jr *jnrequest) SetTimeout(timeout int) {
 }
 
 // 重置并设置headers
-func (jr *jnrequest) SetHeaders(headers map[string][]string) {
+func (jr *Jnrequest) SetHeaders(headers map[string][]string) {
 	if jr == nil {
 		return
 	}
@@ -606,7 +610,7 @@ func (jr *jnrequest) SetHeaders(headers map[string][]string) {
 }
 
 // 添加headers
-func (jr *jnrequest) AddHeaders(headers map[string]string) {
+func (jr *Jnrequest) AddHeaders(headers map[string]string) {
 	if jr == nil {
 		return
 	}
@@ -628,7 +632,7 @@ func (jr *jnrequest) AddHeaders(headers map[string]string) {
 }
 
 // 设置body data
-func (jr *jnrequest) SetData(d interface{}) {
+func (jr *Jnrequest) SetData(d interface{}) {
 	if jr == nil {
 		return
 	}
@@ -644,7 +648,7 @@ func (jr *jnrequest) SetData(d interface{}) {
 }
 
 // 设置params
-func (jr *jnrequest) SetParams(params map[string][]string) {
+func (jr *Jnrequest) SetParams(params map[string][]string) {
 	if jr == nil {
 		return
 	}
@@ -663,7 +667,7 @@ func (jr *jnrequest) SetParams(params map[string][]string) {
 }
 
 // 追加params,1
-func (jr *jnrequest) AddParams(params map[string]string) {
+func (jr *Jnrequest) AddParams(params map[string]string) {
 	if jr == nil {
 		return
 	}
@@ -687,23 +691,29 @@ func (jr *jnrequest) AddParams(params map[string]string) {
 }
 
 // 设置cookies
-func (jr *jnrequest) SetCookies(cookies []map[string]string) {
+func (jr *Jnrequest) SetCookies(cookies map[string]string) {
 	if jr == nil {
 		return
 	}
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
 	}
-	for k, cookie := range cookies {
-		for k2, v2 := range cookie {
-			jr.Cookies[k] = &http.Cookie{Name: k2, Value: v2}
-			break
-		}
+	//for k, cookie := range cookies {
+	//	for k2, v2 := range cookie {
+	//		jr.Cookies[k] = &http.Cookie{Name: k2, Value: v2}
+	//		break
+	//	}
+	//}
+	cookieStrList := []string{}
+	for kName, kVal := range cookies {
+		tmpCookieStr := fmt.Sprintf("%s=%s", kName, kVal)
+		cookieStrList = append(cookieStrList, tmpCookieStr)
 	}
+	jr.Headers["Cookie"] = cookieStrList
 }
 
 // 设置是否转发
-func (jr *jnrequest) SetIsRedirect(isredirect bool) {
+func (jr *Jnrequest) SetIsRedirect(isredirect bool) {
 	if jr == nil {
 		return
 	}
@@ -717,7 +727,7 @@ func (jr *jnrequest) SetIsRedirect(isredirect bool) {
 }
 
 // 设置http 2.0
-func (jr *jnrequest) SetHttpVersion(version int) {
+func (jr *Jnrequest) SetHttpVersion(version int) {
 	if jr == nil {
 		return
 	}
@@ -725,7 +735,7 @@ func (jr *jnrequest) SetHttpVersion(version int) {
 }
 
 // 设置是否验证ssl
-func (jr *jnrequest) SetIsVerifySSL(isverifyssl bool) {
+func (jr *Jnrequest) SetIsVerifySSL(isverifyssl bool) {
 	if jr == nil {
 		return
 	}
@@ -764,7 +774,7 @@ func (jr *jnrequest) SetIsVerifySSL(isverifyssl bool) {
 }
 
 // 设置connection是否为长连接，keep-alive
-func (jr *jnrequest) SetKeepalive(iskeepalive bool) {
+func (jr *Jnrequest) SetKeepalive(iskeepalive bool) {
 	if jr == nil {
 		return
 	}
@@ -772,7 +782,7 @@ func (jr *jnrequest) SetKeepalive(iskeepalive bool) {
 }
 
 // 设置发包后，是否发送RST包，用于缓解TIME_WAIT问题
-func (jr *jnrequest) SetRST(bSendRST bool) {
+func (jr *Jnrequest) SetRST(bSendRST bool) {
 	if jr == nil {
 		return
 	}
@@ -780,7 +790,7 @@ func (jr *jnrequest) SetRST(bSendRST bool) {
 }
 
 // 设置capath
-func (jr *jnrequest) SetCAPath(CAPath string) {
+func (jr *Jnrequest) SetCAPath(CAPath string) {
 	if jr == nil {
 		return
 	}

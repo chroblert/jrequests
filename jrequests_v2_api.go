@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"github.com/chroblert/jrequests/jfile"
 	"golang.org/x/net/http2"
 	"io"
@@ -252,19 +253,31 @@ func (jr *jrequest) CAddParams(params map[string]string) (jre *jrequest) {
 }
 
 // 设置cookies
-func (jr *jrequest) CSetCookies(cookies []map[string]string) (jre *jrequest) {
+func (jr *jrequest) CSetCookies(cookies map[string]string) (jre *jrequest) {
 	if jr == nil {
 		return nil
 	}
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
 	}
-	for k, cookie := range cookies {
-		for k2, v2 := range cookie {
-			jr.Cookies[k] = &http.Cookie{Name: k2, Value: v2}
-			break
-		}
+	//bCookie := false
+	//for k, _ := range jr.Headers {
+	//	if k == "Cookie" {
+	//		bCookie = true
+	//		break
+	//	}
+	//}
+	//// headers中有cookie
+	//if bCookie {
+	//
+	//}
+	cookieStrList := []string{}
+	for kName, kVal := range cookies {
+		tmpCookieStr := fmt.Sprintf("%s=%s", kName, kVal)
+		cookieStrList = append(cookieStrList, tmpCookieStr)
 	}
+	jr.Headers["Cookie"] = cookieStrList
+
 	return jr
 }
 
@@ -361,8 +374,8 @@ func (jre *jrequest) CDo() (resp *jresponse, err error) {
 		jre.req.URL.RawQuery = query.Encode()
 	}
 	// 设置cookie
-	u, err := url.Parse(jre.Url)
-	jre.cli.Jar.SetCookies(u, jre.Cookies)
+	//u, err := url.Parse(jre.Url)
+	//jre.cli.Jar.SetCookies(u, jre.Cookies)
 	// 设置是否转发
 	if !jre.IsRedirect {
 		jre.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
