@@ -18,7 +18,7 @@ import (
 )
 
 var jrePool = &sync.Pool{New: func() interface{} {
-	return &jrequest{
+	return &Jrequest{
 		Proxy:   nil,
 		Timeout: 60,
 		Headers: map[string][]string{
@@ -42,7 +42,7 @@ var jrePool = &sync.Pool{New: func() interface{} {
 }}
 
 // 用于链式
-type jrequest struct {
+type Jrequest struct {
 	Headers map[string][]string
 	Params  map[string][]string
 	Cookies []*http.Cookie
@@ -109,7 +109,7 @@ func (jrs *jresponse) Body() []byte {
 // 创建实例
 // param d:是否保存cookie，true or false
 func New(d ...interface{}) (jrn *Jnrequest, err error) {
-	jrn = (*Jnrequest)(jrePool.Get().(*jrequest))
+	jrn = (*Jnrequest)(jrePool.Get().(*Jrequest))
 	jrn.cli.Jar, err = cookiejar.New(nil)
 	if err != nil {
 		return
@@ -271,7 +271,7 @@ func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err 
 	return
 }
 
-func resetJr(jr *jrequest) {
+func resetJr(jr *Jrequest) {
 	jr.Proxy = nil
 	jr.Timeout = 60
 	jr.Headers = map[string][]string{
