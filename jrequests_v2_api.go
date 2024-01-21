@@ -386,6 +386,65 @@ func (jr *jrequest) CSetCAPath(CAPath string) (jre *jrequest) {
 	return jr
 }
 
+func CSetReq(req *http.Request) (jr *jrequest) {
+	jr = jrePool.Get().(*jrequest)
+	// 设置params
+	// 设置headers
+	//for headerName,headerVals := range req.Header{
+	//
+	//}
+	jr.Headers = req.Header
+	jr.Url = req.URL.String()
+	//jlog.Info(jr.Url)
+	dataBytes, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return nil
+	}
+	jr.Data = dataBytes
+	jr.method = req.Method
+	if req.ProtoMajor == 2 {
+		jr.HttpVersion = 2
+	} else if req.ProtoMajor == 1 {
+		jr.HttpVersion = 1
+	}
+	return jr
+}
+
+// 获取请求
+func (jre *jrequest) CGetReq() (req *http.Request, err error) {
+	var reader io.Reader = bytes.NewReader(jre.Data)
+	//var err error
+	jre.req, err = http.NewRequest(jre.method, jre.Url, reader)
+	if err != nil {
+		return nil, err
+	}
+	// 设置headers
+	for k, v := range jre.Headers {
+		for _, v2 := range v {
+			jre.req.Header.Add(k, v2)
+		}
+	}
+	// 设置params
+	if jre.Params != nil {
+		query := jre.req.URL.Query()
+		for paramKey, paramValue := range jre.Params {
+			//query.Add(paramKey, paramValue)
+			for _, v2 := range paramValue {
+				query.Add(paramKey, v2)
+			}
+		}
+		jre.req.URL.RawQuery = query.Encode()
+	}
+	// 设置connection
+	jre.req.Close = !jre.IsKeepAlive
+	req = jre.req
+	// 设置短连接
+	//jlog.Info(jre.req)
+	resetJr(jre)
+	jrePool.Put(jre)
+	return req, nil
+}
+
 // 发起请求
 func (jre *jrequest) CDo() (resp *jresponse, err error) {
 	var reader io.Reader = bytes.NewReader(jre.Data)

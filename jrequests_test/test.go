@@ -59,7 +59,7 @@ func async_req() {
 	a := jasync.NewAR(5)
 	for i := 0; i < 2; i++ {
 		a.Init("").CAdd(func() string {
-			resp, _ := jrequests.CGet("https://ipinfo.io").
+			req, _ := jrequests.CGet("https://ipinfo.io/?1=2&b=4").
 				CSetIsVerifySSL(false).
 				CSetHttpVersion(2).
 				CSetProxy("http://localhost:8080").
@@ -72,10 +72,13 @@ func async_req() {
 				}).CAddCookies(map[string]string{
 				"3": "4", "5": "6",
 			}).
-				CSetTimeout(3).CDo()
+				CSetTimeout(3).CGetReq()
+			resp, _ := jrequests.CSetReq(req).CSetParams(map[string][]string{
+				"t1": {"1q1q", "4r4r"},
+			}).CSetProxy("http://localhost:8080").CDo()
 			return string(resp.Body())
 		}).CAdd(func(body string) {
-			jlog.Info(body)
+			//jlog.Info(body)
 		}).CDO()
 	}
 	a.Wait()
