@@ -89,12 +89,12 @@ type Jnrequest struct {
 	method       string
 }
 
-type jresponse struct {
+type Jresponse struct {
 	Resp *http.Response
 }
 
 // 返回响应的body
-func (jrs *jresponse) Body() []byte {
+func (jrs *Jresponse) Body() []byte {
 	if jrs.Resp == nil {
 		return nil
 	}
@@ -126,16 +126,16 @@ func New(d ...interface{}) (jrn *Jnrequest, err error) {
 	return
 }
 
-//func (jr *jrequest) Do(d ...interface{}) (resp *jresponse, err error) {
-//	resp = &jresponse{}
+//func (jr *jrequest) Do(d ...interface{}) (resp *Jresponse, err error) {
+//	resp = &Jresponse{}
 //	//jlog.Info(req2)
 //	resp.Resp, err = jr.cli.Do(jr.req)
 //	return
 //}
 
 // TODO 解决并发 资源共享问题
-func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
-	resp = &jresponse{}
+func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	resp = &Jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
 	if len(d) > 0 {
@@ -291,8 +291,8 @@ func resetJr(jr *Jrequest) {
 	jr.cli = &http.Client{}
 }
 
-func (jr *Jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
-	resp = &jresponse{}
+func (jr *Jnrequest) Post(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	resp = &Jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
 	if len(d) > 0 {
@@ -426,8 +426,8 @@ func (jr *Jnrequest) Post(reqUrl string, d ...interface{}) (resp *jresponse, err
 	return
 }
 
-func (jr *Jnrequest) Put(reqUrl string, d ...interface{}) (resp *jresponse, err error) {
-	resp = &jresponse{}
+func (jr *Jnrequest) Put(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	resp = &Jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
 	if len(d) > 0 {

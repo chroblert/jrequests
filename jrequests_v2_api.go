@@ -468,7 +468,7 @@ func (jre *Jrequest) CGetReq() (req *http.Request, err error) {
 }
 
 // 发起请求
-func (jre *Jrequest) CDo() (resp *jresponse, err error) {
+func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
 	var reader io.Reader = bytes.NewReader(jre.Data)
 	//var err error
 	jre.req, err = http.NewRequest(jre.method, jre.Url, reader)
@@ -505,7 +505,7 @@ func (jre *Jrequest) CDo() (resp *jresponse, err error) {
 	jre.req.Close = !jre.IsKeepAlive
 	// 设置短连接
 	jre.transport.DisableKeepAlives = !jre.IsKeepAlive
-	resp = &jresponse{}
+	resp = &Jresponse{}
 	//jlog.Info(jre.req)
 
 	// 设置代理
