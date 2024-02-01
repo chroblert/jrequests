@@ -14,8 +14,46 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strings"
 	"time"
 )
+
+func CRequest(reqMethod, reqUrl string, d ...interface{}) (jre *Jrequest) {
+	switch reqMethod {
+	case "GET":
+	case "POST":
+	case "PUT":
+	case "HEAD":
+	case "DELETE":
+	default:
+		return nil
+	}
+	var err error
+	jre = jrePool.Get().(*Jrequest)
+	jre.cli.Jar, err = cookiejar.New(nil)
+	if err != nil {
+		return nil
+	}
+	urlObj, err := url.Parse(reqUrl)
+	if err != nil {
+		return nil
+	}
+	jre.Params = urlObj.Query()
+	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
+	jre.Url = urlStr
+	if len(d) > 0 {
+		switch d[0].(type) {
+		case []byte:
+			jre.Data = d[0].([]byte)
+		case string:
+			jre.Data = []byte(d[0].(string))
+		default:
+			jre.Data = []byte(nil)
+		}
+	}
+	jre.method = reqMethod
+	return
+}
 
 func CHead(reqUrl string, d ...interface{}) (jre *Jrequest) {
 	var err error
@@ -24,7 +62,13 @@ func CHead(reqUrl string, d ...interface{}) (jre *Jrequest) {
 	if err != nil {
 		return nil
 	}
-	jre.Url = reqUrl
+	urlObj, err := url.Parse(reqUrl)
+	if err != nil {
+		return nil
+	}
+	jre.Params = urlObj.Query()
+	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
+	jre.Url = urlStr
 	if len(d) > 0 {
 		switch d[0].(type) {
 		case []byte:
@@ -137,6 +181,10 @@ func (jr *Jrequest) CSetProxy(proxy string) (jre *Jrequest) {
 		return nil
 	}
 	// TODO proxy格式校验
+	if strings.TrimSpace(proxy) == "" {
+		// 若为空，直接返回jr
+		return jr
+	}
 	pUrl, err := url.Parse(proxy)
 	if err != nil {
 		//jr.transport.Proxy = nil
