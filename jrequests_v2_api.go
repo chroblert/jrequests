@@ -56,122 +56,18 @@ func CRequest(reqMethod, reqUrl string, d ...interface{}) (jre *Jrequest) {
 }
 
 func CHead(reqUrl string, d ...interface{}) (jre *Jrequest) {
-	var err error
-	jre = jrePool.Get().(*Jrequest)
-	jre.cli.Jar, err = cookiejar.New(nil)
-	if err != nil {
-		return nil
-	}
-	urlObj, err := url.Parse(reqUrl)
-	if err != nil {
-		return nil
-	}
-	jre.Params = urlObj.Query()
-	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
-	jre.Url = urlStr
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			jre.Data = d[0].([]byte)
-		case string:
-			jre.Data = []byte(d[0].(string))
-		default:
-			jre.Data = []byte(nil)
-		}
-	}
-	jre.method = "HEAD"
-	//// 设置transport
-	//jre.cli.Transport = jre.transport
-	return
+	return CRequest("HEAD", reqUrl, d)
 }
 
 func CGet(reqUrl string, d ...interface{}) (jre *Jrequest) {
-	var err error
-	jre = jrePool.Get().(*Jrequest)
-	jre.cli.Jar, err = cookiejar.New(nil)
-	if err != nil {
-		return nil
-	}
-	urlObj, err := url.Parse(reqUrl)
-	if err != nil {
-		return nil
-	}
-	jre.Params = urlObj.Query()
-	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
-	jre.Url = urlStr
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			jre.Data = d[0].([]byte)
-		case string:
-			jre.Data = []byte(d[0].(string))
-		default:
-			jre.Data = []byte(nil)
-		}
-	}
-	jre.method = "GET"
-	//// 设置transport
-	//jre.cli.Transport = jre.transport
-	return
+	return CRequest("GET", reqUrl, d)
 }
 
 func CPost(reqUrl string, d ...interface{}) (jre *Jrequest) {
-	var err error
-	jre = jrePool.Get().(*Jrequest)
-	jre.cli.Jar, err = cookiejar.New(nil)
-	if err != nil {
-		return nil
-	}
-	urlObj, err := url.Parse(reqUrl)
-	if err != nil {
-		return nil
-	}
-	jre.Params = urlObj.Query()
-	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
-	jre.Url = urlStr
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			jre.Data = d[0].([]byte)
-		case string:
-			jre.Data = []byte(d[0].(string))
-		default:
-			jre.Data = []byte(nil)
-		}
-	}
-	jre.method = "POST"
-	//// 设置transport
-	//jre.cli.Transport = jre.transport
-	return
+	return CRequest("POST", reqUrl, d)
 }
 func CPut(reqUrl string, d ...interface{}) (jre *Jrequest) {
-	var err error
-	jre = jrePool.Get().(*Jrequest)
-	jre.cli.Jar, err = cookiejar.New(nil)
-	if err != nil {
-		return nil
-	}
-	urlObj, err := url.Parse(reqUrl)
-	if err != nil {
-		return nil
-	}
-	jre.Params = urlObj.Query()
-	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
-	jre.Url = urlStr
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			jre.Data = d[0].([]byte)
-		case string:
-			jre.Data = []byte(d[0].(string))
-		default:
-			jre.Data = []byte(nil)
-		}
-	}
-	jre.method = "PUT"
-	//// 设置transport
-	//jre.cli.Transport = jre.transport
-	return
+	return CRequest("PUT", reqUrl, d)
 }
 
 // 设置代理
