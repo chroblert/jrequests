@@ -413,40 +413,10 @@ func (jre *Jrequest) CGetReq() (req *http.Request, err error) {
 
 // 发起请求
 func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
-	var reader io.Reader = bytes.NewReader(jre.Data)
-	//var err error
-	jre.req, err = http.NewRequest(jre.method, jre.Url, reader)
+	jre.req, err = jre.CGetReq()
 	if err != nil {
 		return nil, err
 	}
-	// 设置headers
-	for k, v := range jre.Headers {
-		for _, v2 := range v {
-			jre.req.Header.Add(k, v2)
-		}
-	}
-	// 设置params
-	if jre.Params != nil {
-		query := jre.req.URL.Query()
-		for paramKey, paramValue := range jre.Params {
-			//query.Add(paramKey, paramValue)
-			for _, v2 := range paramValue {
-				query.Add(paramKey, v2)
-			}
-		}
-		jre.req.URL.RawQuery = query.Encode()
-	}
-	// 设置cookie
-	//u, err := url.Parse(jre.Url)
-	//jre.cli.Jar.SetCookies(u, jre.Cookies)
-	// 设置是否转发
-	if !jre.IsRedirect {
-		jre.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
-	// 设置connection
-	jre.req.Close = !jre.IsKeepAlive
 	// 设置短连接
 	jre.transport.DisableKeepAlives = !jre.IsKeepAlive
 	resp = &Jresponse{}
