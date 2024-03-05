@@ -133,8 +133,7 @@ func New(d ...interface{}) (jrn *Jnrequest, err error) {
 //	return
 //}
 
-// TODO 解决并发 资源共享问题
-func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
 	resp = &Jresponse{}
 	//jr.Url = reqUrl
 	var reader io.Reader
@@ -152,7 +151,7 @@ func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *Jresponse, err 
 	}
 
 	//req2, err = http.NewRequest("GET", reqUrl, reader)
-	req2, err := http.NewRequest("GET", reqUrl, reader)
+	req2, err := http.NewRequest(reqMethod, reqUrl, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +270,22 @@ func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *Jresponse, err 
 	return
 }
 
+// TODO 解决并发 资源共享问题
+func (jr *Jnrequest) Get(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	return jr.Request("GET", reqUrl, d)
+}
+func (jr *Jnrequest) POST(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	return jr.Request("POST", reqUrl, d)
+}
+func (jr *Jnrequest) PUT(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	return jr.Request("PUT", reqUrl, d)
+}
+func (jr *Jnrequest) HEAD(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	return jr.Request("HEAD", reqUrl, d)
+}
+func (jr *Jnrequest) DELETE(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	return jr.Request("DELETE", reqUrl, d)
+}
 func resetJr(jr *Jrequest) {
 	jr.Proxy = nil
 	jr.Timeout = 60
@@ -289,276 +304,6 @@ func resetJr(jr *Jrequest) {
 	jr.transport = &http.Transport{}
 	jr.transport2 = &http2.Transport{}
 	jr.cli = &http.Client{}
-}
-
-func (jr *Jnrequest) Post(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
-	resp = &Jresponse{}
-	//jr.Url = reqUrl
-	var reader io.Reader
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			reader = bytes.NewReader(d[0].([]byte))
-		case string:
-			reader = strings.NewReader(d[0].(string))
-		default:
-			reader = nil
-		}
-	} else {
-		reader = nil
-	}
-
-	req2, err := http.NewRequest("POST", reqUrl, reader)
-	if err != nil {
-		return nil, err
-	}
-	// 设置headers
-	for k, v := range jr.Headers {
-		for _, v2 := range v {
-			req2.Header.Add(k, v2)
-		}
-	}
-	// 设置cookies
-	//u, err := url.Parse(reqUrl)
-	//jr.cli.Jar.SetCookies(u, jr.Cookies)
-	// 设置是否转发
-	if !jr.IsRedirect {
-		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			// 对302的location地址，不follow
-			return http.ErrUseLastResponse
-		}
-	}
-	// 设置params
-	if jr.Params != nil {
-		query := req2.URL.Query()
-		for paramKey, paramValue := range jr.Params {
-			//query.Add(paramKey, paramValue)
-			for _, v2 := range paramValue {
-				query.Add(paramKey, v2)
-			}
-		}
-		req2.URL.RawQuery = query.Encode()
-	}
-	// 设置代理
-	if jr.Proxy != nil {
-		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-			return jr.Proxy, nil
-		}
-	} else {
-		jr.transport.Proxy = nil
-	}
-	// 设置超时
-	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
-	// 设置是否验证服务端证书
-	if !jr.IsVerifySSL {
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.InsecureSkipVerify = true
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
-			}
-		}
-
-	} else {
-		var rootCAPool *x509.CertPool
-		rootCAPool, err := x509.SystemCertPool()
-		if err != nil {
-			rootCAPool = x509.NewCertPool()
-		}
-		// 判断当前程序运行的目录下是否有cas目录
-		// 根证书，用来验证服务端证书的ca
-		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
-			// 枚举当前目录下的文件
-			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
-			if len(caFilenames) > 0 {
-				for _, filename := range caFilenames {
-					caCrt, err := ioutil.ReadFile(filename)
-					if err != nil {
-						return nil, err
-					}
-					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
-					rootCAPool.AppendCertsFromPEM(caCrt)
-				}
-			}
-		}
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.RootCAs = rootCAPool
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				RootCAs: rootCAPool,
-			}
-		}
-		jr.transport.TLSClientConfig = &tls.Config{
-			RootCAs: rootCAPool,
-		}
-	}
-	// 设置transport
-	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
-	backTransport := jr.transport
-	//tmp := *jr.transport
-	//backTransport := &tmp
-	if jr.HttpVersion == 2 {
-		// 判断当前是否已经为http2
-		alreadyH2 := false
-		for _, v := range jr.transport.TLSClientConfig.NextProtos {
-			if v == "h2" {
-				alreadyH2 = true
-				break
-			}
-		}
-		if !alreadyH2 {
-			err = http2.ConfigureTransport(backTransport)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	jr.cli.Transport = backTransport
-	// 设置connection
-	req2.Close = !jr.IsKeepAlive
-	resp.Resp, err = jr.cli.Do(req2)
-	if err == nil {
-		// 清空cookie
-		if !jr.IsKeepCookie {
-			jr.cli.Jar, err = cookiejar.New(nil)
-		}
-	}
-	return
-}
-
-func (jr *Jnrequest) Put(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
-	resp = &Jresponse{}
-	//jr.Url = reqUrl
-	var reader io.Reader
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			reader = bytes.NewReader(d[0].([]byte))
-		case string:
-			reader = strings.NewReader(d[0].(string))
-		default:
-			reader = nil
-		}
-	} else {
-		reader = nil
-	}
-
-	req2, err := http.NewRequest("PUT", reqUrl, reader)
-	if err != nil {
-		return nil, err
-	}
-	// 设置headers
-	for k, v := range jr.Headers {
-		for _, v2 := range v {
-			req2.Header.Add(k, v2)
-		}
-	}
-	// 设置cookies
-	//u, err := url.Parse(reqUrl)
-	//jr.cli.Jar.SetCookies(u, jr.Cookies)
-	// 设置是否转发
-	if !jr.IsRedirect {
-		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			// 对302的location地址，不follow
-			return http.ErrUseLastResponse
-		}
-	}
-	// 设置params
-	if jr.Params != nil {
-		query := req2.URL.Query()
-		for paramKey, paramValue := range jr.Params {
-			//query.Add(paramKey, paramValue)
-			for _, v2 := range paramValue {
-				query.Add(paramKey, v2)
-			}
-		}
-		req2.URL.RawQuery = query.Encode()
-	}
-	// 设置代理
-	if jr.Proxy != nil {
-		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-			return jr.Proxy, nil
-		}
-	} else {
-		jr.transport.Proxy = nil
-	}
-	// 设置超时
-	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
-	// 设置是否验证服务端证书
-	if !jr.IsVerifySSL {
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.InsecureSkipVerify = true
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
-			}
-		}
-
-	} else {
-		var rootCAPool *x509.CertPool
-		rootCAPool, err := x509.SystemCertPool()
-		if err != nil {
-			rootCAPool = x509.NewCertPool()
-		}
-		// 判断当前程序运行的目录下是否有cas目录
-		// 根证书，用来验证服务端证书的ca
-		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
-			// 枚举当前目录下的文件
-			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
-			if len(caFilenames) > 0 {
-				for _, filename := range caFilenames {
-					caCrt, err := ioutil.ReadFile(filename)
-					if err != nil {
-						return nil, err
-					}
-					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
-					rootCAPool.AppendCertsFromPEM(caCrt)
-				}
-			}
-		}
-		if jr.transport.TLSClientConfig != nil {
-			jr.transport.TLSClientConfig.RootCAs = rootCAPool
-		} else {
-			jr.transport.TLSClientConfig = &tls.Config{
-				RootCAs: rootCAPool,
-			}
-		}
-		jr.transport.TLSClientConfig = &tls.Config{
-			RootCAs: rootCAPool,
-		}
-	}
-	// 设置transport
-	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
-	backTransport := jr.transport
-	//tmp := *jr.transport
-	//backTransport := &tmp
-	if jr.HttpVersion == 2 {
-		// 判断当前是否已经为http2
-		alreadyH2 := false
-		for _, v := range jr.transport.TLSClientConfig.NextProtos {
-			if v == "h2" {
-				alreadyH2 = true
-				break
-			}
-		}
-		if !alreadyH2 {
-			err = http2.ConfigureTransport(backTransport)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	jr.cli.Transport = backTransport
-	// 设置connection
-	req2.Close = !jr.IsKeepAlive
-	resp.Resp, err = jr.cli.Do(req2)
-	if err == nil {
-		// 清空cookie
-		if !jr.IsKeepCookie {
-			jr.cli.Jar, err = cookiejar.New(nil)
-		}
-	}
-	return
 }
 
 // 设置代理
