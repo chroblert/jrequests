@@ -13,57 +13,8 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 )
-
-var jrePool = &sync.Pool{New: func() interface{} {
-	return &Jrequest{
-		Proxy:   nil,
-		Timeout: 60,
-		Headers: map[string][]string{
-			"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:86.0) Gecko/20100101 Firefox/86.0"},
-		},
-		Data:         nil,
-		Params:       nil,
-		Cookies:      nil,
-		IsRedirect:   true,
-		IsVerifySSL:  false,
-		HttpVersion:  1,
-		IsKeepAlive:  false,
-		BSendRST:     false,
-		IsKeepCookie: false,
-		CAPath:       "cas",
-		//Url:         "",
-		transport:  &http.Transport{},
-		transport2: &http2.Transport{},
-		cli:        &http.Client{},
-	}
-}}
-
-// 用于链式
-type Jrequest struct {
-	Headers map[string][]string
-	Params  map[string][]string
-	Cookies []*http.Cookie
-
-	Proxy        *url.URL // string //func(*http.Request) (*url.URL, error)
-	Timeout      int
-	Data         []byte
-	IsRedirect   bool
-	IsVerifySSL  bool
-	HttpVersion  int
-	IsKeepAlive  bool
-	BSendRST     bool
-	IsKeepCookie bool
-	CAPath       string
-	Url          string
-	transport    *http.Transport
-	transport2   *http2.Transport
-	cli          *http.Client
-	req          *http.Request
-	method       string
-}
 
 // 用于新建
 type Jnrequest struct {
@@ -89,23 +40,6 @@ type Jnrequest struct {
 	method       string
 }
 
-type Jresponse struct {
-	Resp *http.Response
-}
-
-// 返回响应的body
-func (jrs *Jresponse) Body() []byte {
-	if jrs.Resp == nil {
-		return nil
-	}
-	defer jrs.Resp.Body.Close()
-	res, err := ioutil.ReadAll(jrs.Resp.Body)
-	if err != nil {
-		return nil
-	}
-	return res
-}
-
 // 创建实例
 // param d:是否保存cookie，true or false
 func New(d ...interface{}) (jrn *Jnrequest, err error) {
@@ -125,13 +59,6 @@ func New(d ...interface{}) (jrn *Jnrequest, err error) {
 	}
 	return
 }
-
-//func (jr *jrequest) Do(d ...interface{}) (resp *Jresponse, err error) {
-//	resp = &Jresponse{}
-//	//jlog.Info(req2)
-//	resp.Resp, err = jr.cli.Do(jr.req)
-//	return
-//}
 
 func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
 	resp = &Jresponse{}
@@ -286,29 +213,14 @@ func (jr *Jnrequest) HEAD(reqUrl string, d ...interface{}) (resp *Jresponse, err
 func (jr *Jnrequest) DELETE(reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
 	return jr.Request("DELETE", reqUrl, d)
 }
-func resetJr(jr *Jrequest) {
-	jr.Proxy = nil
-	jr.Timeout = 60
-	jr.Headers = map[string][]string{
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:86.0) Gecko/20100101 Firefox/86.0"},
-	}
-	jr.Data = nil
-	jr.Params = nil
-	jr.Cookies = nil
-	jr.IsRedirect = true
-	jr.IsVerifySSL = false
-	jr.HttpVersion = 1
-	jr.IsKeepAlive = false
-	jr.BSendRST = false
-	jr.CAPath = "cas"
-	jr.transport = &http.Transport{}
-	jr.transport2 = &http2.Transport{}
-	jr.cli = &http.Client{}
-}
 
 // 设置代理
 func (jr *Jnrequest) SetProxy(proxy string) {
 	if jr == nil {
+		return
+	}
+	if strings.TrimSpace(proxy) == "" {
+		// 若为空，直接返回jr
 		return
 	}
 	// TODO proxy格式校验
@@ -317,13 +229,6 @@ func (jr *Jnrequest) SetProxy(proxy string) {
 		return
 	}
 	jr.Proxy = pUrl
-	//if proxy != "" {
-	//	jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-	//		return url.Parse(proxy)
-	//	}
-	//} else {
-	//	jr.transport.Proxy = nil
-	//}
 }
 
 // 设置超时
@@ -443,12 +348,6 @@ func (jr *Jnrequest) SetCookies(cookies map[string]string) {
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
 	}
-	//for k, cookie := range cookies {
-	//	for k2, v2 := range cookie {
-	//		jr.Cookies[k] = &http.Cookie{Name: k2, Value: v2}
-	//		break
-	//	}
-	//}
 	if jr.Headers == nil {
 		jr.Headers = make(map[string][]string)
 	}
@@ -501,12 +400,6 @@ func (jr *Jnrequest) SetIsRedirect(isredirect bool) {
 		return
 	}
 	jr.IsRedirect = isredirect
-	// 设置是否转发
-	//if !jr.IsRedirect {
-	//	jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-	//		return http.ErrUseLastResponse
-	//	}
-	//}
 }
 
 // 设置http 2.0
@@ -523,37 +416,6 @@ func (jr *Jnrequest) SetIsVerifySSL(isverifyssl bool) {
 		return
 	}
 	jr.IsVerifySSL = isverifyssl
-	// 设置是否验证服务端证书
-	//if !jr.IsVerifySSL {
-	//	jr.transport.TLSClientConfig = &tls.Config{
-	//		InsecureSkipVerify: true, // 遇到不安全的https跳过验证
-	//	}
-	//} else {
-	//	var rootCAPool *x509.CertPool
-	//	rootCAPool, err := x509.SystemCertPool()
-	//	if err != nil {
-	//		rootCAPool = x509.NewCertPool()
-	//	}
-	//	// 判断当前程序运行的目录下是否有cas目录
-	//	// 根证书，用来验证服务端证书的ca
-	//	if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
-	//		// 枚举当前目录下的文件
-	//		caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
-	//		if len(caFilenames) > 0 {
-	//			for _, filename := range caFilenames {
-	//				caCrt, err := ioutil.ReadFile(filename)
-	//				if err != nil {
-	//					return
-	//				}
-	//				//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
-	//				rootCAPool.AppendCertsFromPEM(caCrt)
-	//			}
-	//		}
-	//	}
-	//	jr.transport.TLSClientConfig = &tls.Config{
-	//		RootCAs: rootCAPool,
-	//	}
-	//}
 }
 
 // 设置connection是否为长连接，keep-alive
