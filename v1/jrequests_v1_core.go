@@ -1,4 +1,4 @@
-package jrequests
+package v1
 
 import (
 	"bytes"

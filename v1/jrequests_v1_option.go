@@ -1,4 +1,4 @@
-package jrequests
+package v1
 
 // 请求选项的结构体
 type Option struct {
@@ -28,7 +28,6 @@ func (fdo *funcOption) apply(option *Option) {
 	fdo.f(option)
 }
 
-//
 func newFuncOption(f2 func(*Option)) *funcOption {
 	return &funcOption{
 		f: f2,
