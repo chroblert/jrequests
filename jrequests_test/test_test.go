@@ -5,13 +5,29 @@ import (
 	"github.com/chroblert/jasync"
 	"github.com/chroblert/jlog"
 	"github.com/chroblert/jrequests"
+	"testing"
 )
 
 func main() {
 	//new_requests()
-	async_req()
+	//async_req()
+	//test_1()
 }
 
+func Test_1(t *testing.T) {
+	req, _ := jrequests.New()
+	//req.SetIsVerifySSL(false)
+	//req.SetProxy("http://localhost:8080")
+	req.SetIsVerifySSL(false)
+	req.SetHttpVersion(2)
+	req.SetKeepalive(false)
+	resp, err := req.Get("https://myip.ipip.net")
+	if err != nil {
+		jlog.Error(err)
+		return
+	}
+	jlog.Info(string(resp.Body()))
+}
 func new_requests() {
 	req, _ := jrequests.New()
 	//req.SetIsVerifySSL(false)

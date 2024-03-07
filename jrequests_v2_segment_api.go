@@ -17,28 +17,30 @@ import (
 )
 
 // 用于新建
-type Jnrequest struct {
-	Headers map[string][]string
-	Params  map[string][]string
-	Cookies []*http.Cookie
+//type Jnrequest struct {
+//	Headers map[string][]string
+//	Params  map[string][]string
+//	Cookies []*http.Cookie
+//
+//	Proxy        *url.URL //string //func(*http.Request) (*url.URL, error)
+//	Timeout      int
+//	Data         []byte
+//	IsRedirect   bool
+//	IsVerifySSL  bool
+//	HttpVersion  int
+//	IsKeepAlive  bool
+//	BSendRST     bool
+//	IsKeepCookie bool
+//	CAPath       string
+//	Url          string
+//	transport    *http.Transport
+//	transport2   *http2.Transport
+//	cli          *http.Client
+//	req          *http.Request
+//	method       string
+//}
 
-	Proxy        *url.URL //string //func(*http.Request) (*url.URL, error)
-	Timeout      int
-	Data         []byte
-	IsRedirect   bool
-	IsVerifySSL  bool
-	HttpVersion  int
-	IsKeepAlive  bool
-	BSendRST     bool
-	IsKeepCookie bool
-	CAPath       string
-	Url          string
-	transport    *http.Transport
-	transport2   *http2.Transport
-	cli          *http.Client
-	req          *http.Request
-	method       string
-}
+type Jnrequest Jrequest
 
 // 创建实例
 // param d:是否保存cookie，true or false
@@ -119,27 +121,7 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 	}
 	// 设置超时
 	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
-	// 设置transport
-	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
-	backTransport := jr.transport
-	//tmp := *jr.transport
-	//backTransport := &tmp
-	if jr.HttpVersion == 2 {
-		// 判断当前是否已经为http2
-		alreadyH2 := false
-		for _, v := range jr.transport.TLSClientConfig.NextProtos {
-			if v == "h2" {
-				alreadyH2 = true
-				break
-			}
-		}
-		if !alreadyH2 {
-			err = http2.ConfigureTransport(backTransport)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
+
 	// 设置是否验证服务端证书
 	if !jr.IsVerifySSL {
 		if jr.transport.TLSClientConfig != nil {
@@ -181,6 +163,29 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 		}
 		jr.transport.TLSClientConfig = &tls.Config{
 			RootCAs: rootCAPool,
+		}
+	}
+	// 设置transport
+	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
+	backTransport := jr.transport
+	//tmp := *jr.transport
+	//backTransport := &tmp
+	if jr.HttpVersion == 2 {
+		// 判断当前是否已经为http2
+		alreadyH2 := false
+		if jr.transport.TLSClientConfig != nil {
+			for _, v := range jr.transport.TLSClientConfig.NextProtos {
+				if v == "h2" {
+					alreadyH2 = true
+					break
+				}
+			}
+		}
+		if !alreadyH2 {
+			err = http2.ConfigureTransport(backTransport)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	jr.cli.Transport = backTransport
