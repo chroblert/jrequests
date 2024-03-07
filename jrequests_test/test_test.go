@@ -28,7 +28,22 @@ func Test_1(t *testing.T) {
 	}
 	jlog.Info(string(resp.Body()))
 }
-func new_requests() {
+
+func Test_2(t *testing.T) {
+	//req, _ := jrequests.New()
+	////req.SetIsVerifySSL(false)
+	////req.SetProxy("http://localhost:8080")
+	//req.SetIsVerifySSL(false)
+	//req.SetHttpVersion(2)
+	//req.SetKeepalive(false)
+	resp, err := jrequests.CGet("https://myip.ipip.net").CDo()
+	if err != nil {
+		jlog.Error(err)
+		return
+	}
+	jlog.Info(string(resp.Body()))
+}
+func Test_new_requests(t *testing.T) {
 	req, _ := jrequests.New()
 	//req.SetIsVerifySSL(false)
 	req.SetProxy("http://localhost:8080")

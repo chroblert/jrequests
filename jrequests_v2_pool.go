@@ -30,7 +30,9 @@ var jrePool = &sync.Pool{New: func() interface{} {
 	}
 }}
 
-func resetJr(jr *Jrequest) {
+func resetJr(jre interface{}) {
+	// TODO 如何将Jnrequest转为Jrequest
+	jr := jre.(*Jrequest)
 	jr.Proxy = nil
 	jr.Timeout = 60
 	jr.Headers = map[string][]string{

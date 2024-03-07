@@ -2,6 +2,7 @@ package jrequests
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -63,54 +65,21 @@ func New(d ...interface{}) (jrn *Jnrequest, err error) {
 }
 
 func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
-	resp = &Jresponse{}
-	//jr.Url = reqUrl
-	var reader io.Reader
-	if len(d) > 0 {
-		switch d[0].(type) {
-		case []byte:
-			reader = bytes.NewReader(d[0].([]byte))
-		case string:
-			reader = strings.NewReader(d[0].(string))
-		default:
-			reader = nil
-		}
-	} else {
-		reader = nil
-	}
-
-	//req2, err = http.NewRequest("GET", reqUrl, reader)
-	req2, err := http.NewRequest(reqMethod, reqUrl, reader)
+	urlObj, err := url.Parse(reqUrl)
 	if err != nil {
 		return nil, err
 	}
-	// 设置headers
-	for k, v := range jr.Headers {
-		for _, v2 := range v {
-			req2.Header.Add(k, v2)
-		}
+	jr.Params = urlObj.Query()
+	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
+	jr.Url = urlStr
+	jr.method = reqMethod
+	jr.req, err = jr.GetReq()
+	if err != nil {
+		return nil, err
 	}
-	// 设置cookies
-	//u, err := url.Parse(reqUrl)
-	//jr.cli.Jar.SetCookies(u, jr.Cookies)
-	// 设置是否转发
-	if !jr.IsRedirect {
-		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			// 对302的location地址，不follow
-			return http.ErrUseLastResponse
-		}
-	}
-	// 设置params
-	if jr.Params != nil {
-		query := req2.URL.Query()
-		for paramKey, paramValue := range jr.Params {
-			//query.Add(paramKey, paramValue)
-			for _, v2 := range paramValue {
-				query.Add(paramKey, v2)
-			}
-		}
-		req2.URL.RawQuery = query.Encode()
-	}
+	// 设置短连接
+	jr.transport.DisableKeepAlives = !jr.IsKeepAlive
+	resp = &Jresponse{}
 	// 设置代理
 	if jr.Proxy != nil {
 		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
@@ -121,7 +90,13 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 	}
 	// 设置超时
 	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
-
+	// 设置是否转发
+	if !jr.IsRedirect {
+		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
+			return http.ErrUseLastResponse
+		}
+	}
 	// 设置是否验证服务端证书
 	if !jr.IsVerifySSL {
 		if jr.transport.TLSClientConfig != nil {
@@ -166,7 +141,6 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 		}
 	}
 	// 设置transport
-	// TODO 做个备份 没起作用??? new一次，只能为 http/1.1或http/2
 	backTransport := jr.transport
 	//tmp := *jr.transport
 	//backTransport := &tmp
@@ -188,17 +162,31 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 			}
 		}
 	}
-	jr.cli.Transport = backTransport
-	// 设置connection
-	req2.Close = !jr.IsKeepAlive
-	resp.Resp, err = jr.cli.Do(req2)
-	// 清空cookie
-	if err == nil {
-		// 清空cookie
-		if !jr.IsKeepCookie {
-			jr.cli.Jar, err = cookiejar.New(nil)
+
+	// 缓解TIME_WAIT问题
+	if jr.BSendRST {
+		backTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 30 * time.Second,
+			}
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			tcpConn, ok := conn.(*net.TCPConn)
+			if ok {
+				tcpConn.SetLinger(0)
+				return tcpConn, nil
+			}
+			return conn, nil
 		}
 	}
+
+	jr.cli.Transport = backTransport
+	resp.Resp, err = jr.cli.Do(jr.req)
+	// TODO 如何将Jnrequest转为Jrequest
+	//resetJr(jr)
+	//jrePool.Put(jr)
 	return
 }
 
@@ -445,4 +433,39 @@ func (jr *Jnrequest) SetCAPath(CAPath string) {
 		return
 	}
 	jr.CAPath = CAPath
+}
+
+// 获取请求
+func (jr *Jnrequest) GetReq() (req *http.Request, err error) {
+	var reader io.Reader = bytes.NewReader(jr.Data)
+	//var err error
+	jr.req, err = http.NewRequest(jr.method, jr.Url, reader)
+	if err != nil {
+		return nil, err
+	}
+	// 设置headers
+	for k, v := range jr.Headers {
+		for _, v2 := range v {
+			jr.req.Header.Add(k, v2)
+		}
+	}
+	// 设置params
+	if jr.Params != nil {
+		query := jr.req.URL.Query()
+		for paramKey, paramValue := range jr.Params {
+			//query.Add(paramKey, paramValue)
+			for _, v2 := range paramValue {
+				query.Add(paramKey, v2)
+			}
+		}
+		jr.req.URL.RawQuery = query.Encode()
+	}
+	// 设置connection
+	jr.req.Close = !jr.IsKeepAlive
+	req = jr.req
+	// 设置短连接
+	//jlog.Info(jr.req)
+	//resetJr(jr)
+	//jrePool.Put(jr)
+	return req, nil
 }

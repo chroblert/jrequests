@@ -377,74 +377,72 @@ func CSetReq(req *http.Request) (jr *Jrequest) {
 }
 
 // 获取请求
-func (jre *Jrequest) CGetReq() (req *http.Request, err error) {
-	var reader io.Reader = bytes.NewReader(jre.Data)
+func (jr *Jrequest) CGetReq() (req *http.Request, err error) {
+	var reader io.Reader = bytes.NewReader(jr.Data)
 	//var err error
-	jre.req, err = http.NewRequest(jre.method, jre.Url, reader)
+	jr.req, err = http.NewRequest(jr.method, jr.Url, reader)
 	if err != nil {
 		return nil, err
 	}
 	// 设置headers
-	for k, v := range jre.Headers {
+	for k, v := range jr.Headers {
 		for _, v2 := range v {
-			jre.req.Header.Add(k, v2)
+			jr.req.Header.Add(k, v2)
 		}
 	}
 	// 设置params
-	if jre.Params != nil {
-		query := jre.req.URL.Query()
-		for paramKey, paramValue := range jre.Params {
+	if jr.Params != nil {
+		query := jr.req.URL.Query()
+		for paramKey, paramValue := range jr.Params {
 			//query.Add(paramKey, paramValue)
 			for _, v2 := range paramValue {
 				query.Add(paramKey, v2)
 			}
 		}
-		jre.req.URL.RawQuery = query.Encode()
+		jr.req.URL.RawQuery = query.Encode()
 	}
 	// 设置connection
-	jre.req.Close = !jre.IsKeepAlive
-	req = jre.req
+	jr.req.Close = !jr.IsKeepAlive
+	req = jr.req
 	// 设置短连接
-	//jlog.Info(jre.req)
-	resetJr(jre)
-	jrePool.Put(jre)
+	//jlog.Info(jr.req)
+	//resetJr(jr)
+	//jrePool.Put(jr)
 	return req, nil
 }
 
 // 发起请求
-func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
-	jre.req, err = jre.CGetReq()
+func (jr *Jrequest) CDo() (resp *Jresponse, err error) {
+	jr.req, err = jr.CGetReq()
 	if err != nil {
 		return nil, err
 	}
 	// 设置短连接
-	jre.transport.DisableKeepAlives = !jre.IsKeepAlive
+	jr.transport.DisableKeepAlives = !jr.IsKeepAlive
 	resp = &Jresponse{}
-	//jlog.Info(jre.req)
-
 	// 设置代理
-	if jre.Proxy != nil {
-		jre.transport.Proxy = func(request *http.Request) (*url.URL, error) {
-			return jre.Proxy, nil
+	if jr.Proxy != nil {
+		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jr.Proxy, nil
 		}
 	} else {
-		jre.transport.Proxy = nil
+		jr.transport.Proxy = nil
 	}
 	// 设置超时
-	jre.cli.Timeout = time.Second * time.Duration(jre.Timeout)
+	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	// 设置是否转发
-	if !jre.IsRedirect {
-		jre.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	if !jr.IsRedirect {
+		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			// 对302的location地址，不follow
 			return http.ErrUseLastResponse
 		}
 	}
 	// 设置是否验证服务端证书
-	if !jre.IsVerifySSL {
-		if jre.transport.TLSClientConfig != nil {
-			jre.transport.TLSClientConfig.InsecureSkipVerify = true
+	if !jr.IsVerifySSL {
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
 		} else {
-			jre.transport.TLSClientConfig = &tls.Config{
+			jr.transport.TLSClientConfig = &tls.Config{
 				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
 			}
 		}
@@ -457,9 +455,9 @@ func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
 		}
 		// 判断当前程序运行的目录下是否有cas目录
 		// 根证书，用来验证服务端证书的ca
-		if isExsit, _ := jfile.PathExists(jre.CAPath); isExsit {
+		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
 			// 枚举当前目录下的文件
-			caFilenames, _ := jfile.GetFilenamesByDir(jre.CAPath)
+			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
 			if len(caFilenames) > 0 {
 				for _, filename := range caFilenames {
 					caCrt, err := ioutil.ReadFile(filename)
@@ -471,26 +469,26 @@ func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
 				}
 			}
 		}
-		if jre.transport.TLSClientConfig != nil {
-			jre.transport.TLSClientConfig.RootCAs = rootCAPool
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
 		} else {
-			jre.transport.TLSClientConfig = &tls.Config{
+			jr.transport.TLSClientConfig = &tls.Config{
 				RootCAs: rootCAPool,
 			}
 		}
-		jre.transport.TLSClientConfig = &tls.Config{
+		jr.transport.TLSClientConfig = &tls.Config{
 			RootCAs: rootCAPool,
 		}
 	}
 	// 设置transport
-	backTransport := jre.transport
+	backTransport := jr.transport
 	//tmp := *jr.transport
 	//backTransport := &tmp
-	if jre.HttpVersion == 2 {
+	if jr.HttpVersion == 2 {
 		// 判断当前是否已经为http2
 		alreadyH2 := false
-		if jre.transport.TLSClientConfig != nil {
-			for _, v := range jre.transport.TLSClientConfig.NextProtos {
+		if jr.transport.TLSClientConfig != nil {
+			for _, v := range jr.transport.TLSClientConfig.NextProtos {
 				if v == "h2" {
 					alreadyH2 = true
 					break
@@ -506,7 +504,7 @@ func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
 		}
 	}
 	// 缓解TIME_WAIT问题
-	if jre.BSendRST {
+	if jr.BSendRST {
 		backTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			d := net.Dialer{
 				Timeout: 30 * time.Second,
@@ -524,9 +522,9 @@ func (jre *Jrequest) CDo() (resp *Jresponse, err error) {
 		}
 	}
 
-	jre.cli.Transport = backTransport
-	resp.Resp, err = jre.cli.Do(jre.req)
-	resetJr(jre)
-	jrePool.Put(jre)
+	jr.cli.Transport = backTransport
+	resp.Resp, err = jr.cli.Do(jr.req)
+	resetJr(jr)
+	jrePool.Put(jr)
 	return
 }
