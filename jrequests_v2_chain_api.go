@@ -85,6 +85,7 @@ func (jr *Jrequest) CSetProxy(proxy string) (jre *Jrequest) {
 	if err != nil {
 		//jr.transport.Proxy = nil
 		//jlog.Error(err)
+		jr.err = err
 		return nil
 	}
 	jr.Proxy = pUrl
@@ -378,6 +379,9 @@ func CSetReq(req *http.Request) (jr *Jrequest) {
 
 // 获取请求
 func (jr *Jrequest) CGetReq() (req *http.Request, err error) {
+	if jr == nil {
+		return nil, fmt.Errorf("jr is nil")
+	}
 	var reader io.Reader = bytes.NewReader(jr.Data)
 	//var err error
 	jr.req, err = http.NewRequest(jr.method, jr.Url, reader)
@@ -413,9 +417,21 @@ func (jr *Jrequest) CGetReq() (req *http.Request, err error) {
 
 // 发起请求
 func (jr *Jrequest) CDo() (resp *Jresponse, err error) {
+	if jr == nil {
+		err = fmt.Errorf("jr is nil")
+		return
+	}
+	if jr.err != nil {
+		err = jr.err
+		return
+	}
 	jr.req, err = jr.CGetReq()
 	if err != nil {
 		return nil, err
+	}
+	if jr.req == nil {
+		err = fmt.Errorf("jr.req is nil")
+		return
 	}
 	// 设置短连接
 	jr.transport.DisableKeepAlives = !jr.IsKeepAlive

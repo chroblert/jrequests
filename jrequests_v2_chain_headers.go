@@ -28,6 +28,7 @@ type Jrequest struct {
 	cli          *http.Client
 	req          *http.Request
 	method       string
+	err          error
 }
 
 type Jresponse struct {

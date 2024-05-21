@@ -65,6 +65,14 @@ func New(d ...interface{}) (jrn *Jnrequest, err error) {
 }
 
 func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *Jresponse, err error) {
+	if jr == nil {
+		err = fmt.Errorf("jr is nil")
+		return
+	}
+	if jr.err != nil {
+		err = jr.err
+		return
+	}
 	urlObj, err := url.Parse(reqUrl)
 	if err != nil {
 		return nil, err
@@ -76,6 +84,10 @@ func (jr *Jnrequest) Request(reqMethod, reqUrl string, d ...interface{}) (resp *
 	jr.req, err = jr.GetReq()
 	if err != nil {
 		return nil, err
+	}
+	if jr.req == nil {
+		err = fmt.Errorf("jr.req is nil")
+		return
 	}
 	// 设置短连接
 	jr.transport.DisableKeepAlives = !jr.IsKeepAlive
@@ -219,6 +231,7 @@ func (jr *Jnrequest) SetProxy(proxy string) {
 	// TODO proxy格式校验
 	pUrl, err := url.Parse(proxy)
 	if err != nil {
+		jr.err = err
 		return
 	}
 	jr.Proxy = pUrl
@@ -437,6 +450,9 @@ func (jr *Jnrequest) SetCAPath(CAPath string) {
 
 // 获取请求
 func (jr *Jnrequest) GetReq() (req *http.Request, err error) {
+	if jr == nil {
+		return nil, fmt.Errorf("jr is nil")
+	}
 	var reader io.Reader = bytes.NewReader(jr.Data)
 	//var err error
 	jr.req, err = http.NewRequest(jr.method, jr.Url, reader)

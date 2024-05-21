@@ -27,6 +27,7 @@ var jrePool = &sync.Pool{New: func() interface{} {
 		transport:  &http.Transport{},
 		transport2: &http2.Transport{},
 		cli:        &http.Client{},
+		err:        nil,
 	}
 }}
 

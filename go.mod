@@ -4,7 +4,7 @@ go 1.21.3
 
 require (
 	github.com/chroblert/jasync v0.1.4
-	github.com/chroblert/jlog v0.1.3
+	github.com/chroblert/jlog v0.1.6
 	golang.org/x/net v0.20.0
 )
 

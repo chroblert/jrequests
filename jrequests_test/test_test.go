@@ -118,3 +118,23 @@ func async_req() {
 	a.Wait()
 
 }
+
+func Test_Pool(t *testing.T) {
+	a := jasync.NewAR(2000)
+	num := 10000
+	for i := 1; i < num; i++ {
+		err := a.Init(fmt.Sprintf("%d", i)).CAdd(func() {
+			_, err := jrequests.CGet("http://test.aad-test.xyz/test").CSetTimeout(30).CSetProxy("").CSetIsVerifySSL(false).CDo()
+			if err != nil {
+				jlog.Error(err)
+			} else {
+				//jlog.Info(resp.Resp.StatusCode)
+			}
+		}).CDO()
+		if err != nil {
+			jlog.Error(err)
+			return
+		}
+	}
+	a.Wait()
+}
