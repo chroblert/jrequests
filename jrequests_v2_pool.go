@@ -51,4 +51,5 @@ func resetJr(jre interface{}) {
 	jr.transport = &http.Transport{}
 	jr.transport2 = &http2.Transport{}
 	jr.cli = &http.Client{}
+	jr.err = nil
 }

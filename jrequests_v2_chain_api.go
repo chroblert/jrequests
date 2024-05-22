@@ -32,11 +32,13 @@ func CRequest(reqMethod, reqUrl string, d ...interface{}) (jre *Jrequest) {
 	jre = jrePool.Get().(*Jrequest)
 	jre.cli.Jar, err = cookiejar.New(nil)
 	if err != nil {
-		return nil
+		jre.err = err
+		return jre
 	}
 	urlObj, err := url.Parse(reqUrl)
 	if err != nil {
-		return nil
+		jre.err = err
+		return jre
 	}
 	jre.Params = urlObj.Query()
 	urlStr := fmt.Sprintf("%s://%s%s", urlObj.Scheme, urlObj.Host, urlObj.Path)
@@ -76,6 +78,9 @@ func (jr *Jrequest) CSetProxy(proxy string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	// TODO proxy格式校验
 	if strings.TrimSpace(proxy) == "" {
 		// 若为空，直接返回jr
@@ -104,6 +109,9 @@ func (jr *Jrequest) CSetTimeout(timeout int) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.Timeout = timeout
 	//jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 	return jr
@@ -113,6 +121,9 @@ func (jr *Jrequest) CSetTimeout(timeout int) (jre *Jrequest) {
 func (jr *Jrequest) CSetHeaders(headers map[string][]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	if len(headers) == 0 {
 		jr.Headers = make(map[string][]string)
@@ -133,6 +144,9 @@ func (jr *Jrequest) CSetHeaders(headers map[string][]string) (jre *Jrequest) {
 func (jr *Jrequest) CAddHeaders(headers map[string]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	if jr.Headers == nil {
 		if len(headers) == 0 {
@@ -157,6 +171,9 @@ func (jr *Jrequest) CSetData(d interface{}) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	//jr.Data = d
 	//var reader io.Reader
 	switch d.(type) {
@@ -175,6 +192,9 @@ func (jr *Jrequest) CSetData(d interface{}) (jre *Jrequest) {
 func (jr *Jrequest) CSetParams(params map[string][]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	if len(params) == 0 {
 		jr.Params = make(map[string][]string)
@@ -195,6 +215,9 @@ func (jr *Jrequest) CSetParams(params map[string][]string) (jre *Jrequest) {
 func (jr *Jrequest) CAddParams(params map[string]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	if jr.Params == nil {
 		if len(params) == 0 {
@@ -220,20 +243,12 @@ func (jr *Jrequest) CSetCookies(cookies map[string]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
 	}
-	//bCookie := false
-	//for k, _ := range jr.Headers {
-	//	if k == "Cookie" {
-	//		bCookie = true
-	//		break
-	//	}
-	//}
-	//// headers中有cookie
-	//if bCookie {
-	//
-	//}
 	if jr.Headers == nil {
 		jr.Headers = make(map[string][]string)
 	}
@@ -251,6 +266,9 @@ func (jr *Jrequest) CSetCookies(cookies map[string]string) (jre *Jrequest) {
 func (jr *Jrequest) CAddCookies(cookies map[string]string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
@@ -287,6 +305,9 @@ func (jr *Jrequest) CSetIsRedirect(isredirect bool) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.IsRedirect = isredirect
 
 	return jr
@@ -296,6 +317,9 @@ func (jr *Jrequest) CSetIsRedirect(isredirect bool) (jre *Jrequest) {
 func (jr *Jrequest) CSetHttpVersion(version int) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	jr.HttpVersion = version
 	// 设置httptransport
@@ -318,6 +342,9 @@ func (jr *Jrequest) CSetIsVerifySSL(isverifyssl bool) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.IsVerifySSL = isverifyssl
 	return jr
 }
@@ -326,6 +353,9 @@ func (jr *Jrequest) CSetIsVerifySSL(isverifyssl bool) (jre *Jrequest) {
 func (jr *Jrequest) CSetKeepalive(iskeepalive bool) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	jr.IsKeepAlive = iskeepalive
 	return jr
@@ -336,6 +366,9 @@ func (jr *Jrequest) CSetRST(bSendRST bool) (jre *Jrequest) {
 	if jr == nil {
 		return nil
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.BSendRST = bSendRST
 	return jr
 }
@@ -344,6 +377,9 @@ func (jr *Jrequest) CSetRST(bSendRST bool) (jre *Jrequest) {
 func (jr *Jrequest) CSetCAPath(CAPath string) (jre *Jrequest) {
 	if jr == nil {
 		return nil
+	}
+	if jr.err != nil {
+		return
 	}
 	jr.CAPath = CAPath
 	return jr
@@ -382,10 +418,14 @@ func (jr *Jrequest) CGetReq() (req *http.Request, err error) {
 	if jr == nil {
 		return nil, fmt.Errorf("jr is nil")
 	}
+	if jr.err != nil {
+		return nil, jr.err
+	}
 	var reader io.Reader = bytes.NewReader(jr.Data)
 	//var err error
 	jr.req, err = http.NewRequest(jr.method, jr.Url, reader)
 	if err != nil {
+		jr.err = err
 		return nil, err
 	}
 	// 设置headers
@@ -421,6 +461,9 @@ func (jr *Jrequest) CDo() (resp *Jresponse, err error) {
 		err = fmt.Errorf("jr is nil")
 		return
 	}
+	// 在这里进行临时对象池的回收
+	defer jrePool.Put(jr)
+	defer resetJr(jr)
 	if jr.err != nil {
 		err = jr.err
 		return
@@ -540,7 +583,6 @@ func (jr *Jrequest) CDo() (resp *Jresponse, err error) {
 
 	jr.cli.Transport = backTransport
 	resp.Resp, err = jr.cli.Do(jr.req)
-	resetJr(jr)
-	jrePool.Put(jr)
+
 	return
 }

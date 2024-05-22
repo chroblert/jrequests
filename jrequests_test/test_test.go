@@ -138,3 +138,12 @@ func Test_Pool(t *testing.T) {
 	}
 	a.Wait()
 }
+
+func Test_request(t *testing.T) {
+	resp, err := jrequests.CGet("http://for_s3-website-\\${aws_default_region}.s3.amazonaws.com").CDo()
+	if err != nil {
+		jlog.Error(err)
+	} else {
+		jlog.Info(resp.Resp.StatusCode)
+	}
+}

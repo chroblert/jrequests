@@ -224,6 +224,9 @@ func (jr *Jnrequest) SetProxy(proxy string) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	if strings.TrimSpace(proxy) == "" {
 		// 若为空，直接返回jr
 		return
@@ -242,6 +245,9 @@ func (jr *Jnrequest) SetTimeout(timeout int) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.Timeout = timeout
 	//jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
 }
@@ -249,6 +255,9 @@ func (jr *Jnrequest) SetTimeout(timeout int) {
 // 重置并设置headers
 func (jr *Jnrequest) SetHeaders(headers map[string][]string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	if len(headers) == 0 {
@@ -268,6 +277,9 @@ func (jr *Jnrequest) SetHeaders(headers map[string][]string) {
 // 添加headers
 func (jr *Jnrequest) AddHeaders(headers map[string]string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	if jr.Headers == nil {
@@ -292,6 +304,9 @@ func (jr *Jnrequest) SetData(d interface{}) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	switch d.(type) {
 	case []byte:
 		jr.Data = d.([]byte)
@@ -306,6 +321,9 @@ func (jr *Jnrequest) SetData(d interface{}) {
 // 设置params
 func (jr *Jnrequest) SetParams(params map[string][]string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	if len(params) == 0 {
@@ -325,6 +343,9 @@ func (jr *Jnrequest) SetParams(params map[string][]string) {
 // 追加params,1
 func (jr *Jnrequest) AddParams(params map[string]string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	if jr.Params == nil {
@@ -351,6 +372,9 @@ func (jr *Jnrequest) SetCookies(cookies map[string]string) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	if jr.Cookies == nil {
 		jr.Cookies = make([]*http.Cookie, len(cookies))
 	}
@@ -368,6 +392,9 @@ func (jr *Jnrequest) SetCookies(cookies map[string]string) {
 // 添加cookies
 func (jr *Jnrequest) AddCookies(cookies map[string]string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	if jr.Cookies == nil {
@@ -405,12 +432,18 @@ func (jr *Jnrequest) SetIsRedirect(isredirect bool) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.IsRedirect = isredirect
 }
 
 // 设置http 2.0
 func (jr *Jnrequest) SetHttpVersion(version int) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	jr.HttpVersion = version
@@ -421,12 +454,18 @@ func (jr *Jnrequest) SetIsVerifySSL(isverifyssl bool) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.IsVerifySSL = isverifyssl
 }
 
 // 设置connection是否为长连接，keep-alive
 func (jr *Jnrequest) SetKeepalive(iskeepalive bool) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	jr.IsKeepAlive = iskeepalive
@@ -437,12 +476,18 @@ func (jr *Jnrequest) SetRST(bSendRST bool) {
 	if jr == nil {
 		return
 	}
+	if jr.err != nil {
+		return
+	}
 	jr.BSendRST = bSendRST
 }
 
 // 设置capath
 func (jr *Jnrequest) SetCAPath(CAPath string) {
 	if jr == nil {
+		return
+	}
+	if jr.err != nil {
 		return
 	}
 	jr.CAPath = CAPath
@@ -452,6 +497,9 @@ func (jr *Jnrequest) SetCAPath(CAPath string) {
 func (jr *Jnrequest) GetReq() (req *http.Request, err error) {
 	if jr == nil {
 		return nil, fmt.Errorf("jr is nil")
+	}
+	if jr.err != nil {
+		return
 	}
 	var reader io.Reader = bytes.NewReader(jr.Data)
 	//var err error
