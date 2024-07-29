@@ -26,7 +26,7 @@ func CRequest(reqMethod, reqUrl string, d ...interface{}) (jre *Jrequest) {
 	case "HEAD":
 	case "DELETE":
 	default:
-		return nil
+		//return nil
 	}
 	var err error
 	jre = jrePool.Get().(*Jrequest)
