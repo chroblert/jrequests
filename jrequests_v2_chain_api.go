@@ -465,6 +465,111 @@ func (jr *Jrequest) CGetClient() (client *http.Client, err error) {
 		err = jr.err
 		return
 	}
+	// 设置短连接
+	jr.transport.DisableKeepAlives = !jr.IsKeepAlive
+	// 设置代理
+	if jr.Proxy != nil {
+		jr.transport.Proxy = func(request *http.Request) (*url.URL, error) {
+			return jr.Proxy, nil
+		}
+	} else {
+		jr.transport.Proxy = nil
+	}
+	// 设置超时
+	jr.cli.Timeout = time.Second * time.Duration(jr.Timeout)
+	// 设置是否转发
+	if !jr.IsRedirect {
+		jr.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 对302的location地址，不follow
+			return http.ErrUseLastResponse
+		}
+	}
+	// 设置是否验证服务端证书
+	if !jr.IsVerifySSL {
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, // 遇到不安全的https跳过验证
+			}
+		}
+
+	} else {
+		var rootCAPool *x509.CertPool
+		rootCAPool, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAPool = x509.NewCertPool()
+		}
+		// 判断当前程序运行的目录下是否有cas目录
+		// 根证书，用来验证服务端证书的ca
+		if isExsit, _ := jfile.PathExists(jr.CAPath); isExsit {
+			// 枚举当前目录下的文件
+			caFilenames, _ := jfile.GetFilenamesByDir(jr.CAPath)
+			if len(caFilenames) > 0 {
+				for _, filename := range caFilenames {
+					caCrt, err := ioutil.ReadFile(filename)
+					if err != nil {
+						return nil, err
+					}
+					//jlog.Debug("导入证书结果:", rootCAPool.AppendCertsFromPEM(caCrt))
+					rootCAPool.AppendCertsFromPEM(caCrt)
+				}
+			}
+		}
+		if jr.transport.TLSClientConfig != nil {
+			jr.transport.TLSClientConfig.RootCAs = rootCAPool
+		} else {
+			jr.transport.TLSClientConfig = &tls.Config{
+				RootCAs: rootCAPool,
+			}
+		}
+		jr.transport.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAPool,
+		}
+	}
+	// 设置transport
+	backTransport := jr.transport
+	//tmp := *jr.transport
+	//backTransport := &tmp
+	if jr.HttpVersion == 2 {
+		// 判断当前是否已经为http2
+		alreadyH2 := false
+		if jr.transport.TLSClientConfig != nil {
+			for _, v := range jr.transport.TLSClientConfig.NextProtos {
+				if v == "h2" {
+					alreadyH2 = true
+					break
+				}
+			}
+		}
+
+		if !alreadyH2 {
+			err = http2.ConfigureTransport(backTransport)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	// 缓解TIME_WAIT问题
+	if jr.BSendRST {
+		backTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 30 * time.Second,
+			}
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			tcpConn, ok := conn.(*net.TCPConn)
+			if ok {
+				tcpConn.SetLinger(0)
+				return tcpConn, nil
+			}
+			return conn, nil
+		}
+	}
+
+	jr.cli.Transport = backTransport
 	client = jr.cli
 	return
 }
