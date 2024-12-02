@@ -455,6 +455,20 @@ func (jr *Jrequest) CGetReq() (req *http.Request, err error) {
 	return req, nil
 }
 
+// CGetClient 获取client
+func (jr *Jrequest) CGetClient() (client *http.Client, err error) {
+	if jr == nil {
+		err = fmt.Errorf("jr is nil")
+		return
+	}
+	if jr.err != nil {
+		err = jr.err
+		return
+	}
+	client = jr.cli
+	return
+}
+
 // 发起请求
 func (jr *Jrequest) CDo() (resp *Jresponse, err error) {
 	if jr == nil {
